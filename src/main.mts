@@ -44,11 +44,11 @@ const SUBGRAPH_URLS: Record<string, { decentralized: string }> = {
   },
 };
 
-// Define the Pool interface based on the new GraphQL query
 interface Pool {
   id: string;
   name: string;
   symbol: string;
+  createdTimestamp: number;
 }
 
 interface GraphQLData {
@@ -60,23 +60,28 @@ interface GraphQLResponse {
   errors?: { message: string }[]; // Assuming the API might return errors in this format
 }
 
-// Define headers for the query
+// defining headers for query
 const headers: Record<string, string> = {
   "Content-Type": "application/json",
   Accept: "application/json",
 };
 
 const GET_POOLS_QUERY = `
-query MyQuery {
-  pools(first: 100) {
+query GetPools($lastTimestamp: Int) {
+  pools(
+    first: 1000,
+    orderBy: createdTimestamp,
+    orderDirection: asc,
+    where: { createdTimestamp_gt: $lastTimestamp }
+  ) {
     id
     name
     symbol
+    createdTimestamp
   }
 }
 `;
 
-// Type guard for errors
 function isError(e: unknown): e is Error {
   return (
     typeof e === "object" &&
@@ -86,14 +91,12 @@ function isError(e: unknown): e is Error {
   );
 }
 
-// Function to check for invalid values
 function containsInvalidValue(text: string): boolean {
   const containsHtml = /<[^>]*>/.test(text);
   const isEmpty = text.trim() === "";
   return isEmpty || containsHtml;
 }
 
-// Function to truncate strings
 function truncateString(text: string, maxLength: number) {
   if (text.length > maxLength) {
     return text.substring(0, maxLength - 3) + "..."; // Subtract 3 for the ellipsis
@@ -101,15 +104,16 @@ function truncateString(text: string, maxLength: number) {
   return text;
 }
 
-// Function to fetch data from the GraphQL endpoint
 async function fetchData(
-  subgraphUrl: string
+  subgraphUrl: string,
+  lastTimestamp: number
 ): Promise<Pool[]> {
   const response = await fetch(subgraphUrl, {
     method: "POST",
     headers,
     body: JSON.stringify({
       query: GET_POOLS_QUERY,
+      variables: { lastTimestamp },
     }),
   });
 
@@ -132,7 +136,6 @@ async function fetchData(
   return result.data.pools;
 }
 
-// Function to prepare the URL with the provided API key
 function prepareUrl(chainId: string, apiKey: string): string {
   const urls = SUBGRAPH_URLS[chainId];
   if (!urls || isNaN(Number(chainId))) {
@@ -145,22 +148,21 @@ function prepareUrl(chainId: string, apiKey: string): string {
   return urls.decentralized.replace("[api-key]", encodeURIComponent(apiKey));
 }
 
-// Function to transform pool data into ContractTag objects
 function transformPoolsToTags(chainId: string, pools: Pool[]): ContractTag[] {
   const validPools: Pool[] = [];
   const rejectedNames: string[] = [];
 
   pools.forEach((pool) => {
-    const nameInvalid = containsInvalidValue(pool.name);
-    const symbolInvalid = containsInvalidValue(pool.symbol);
+    const tokenNameInvalid = containsInvalidValue(pool.name);
+    const tokenSymbolInvalid = containsInvalidValue(pool.symbol);
 
-    if (nameInvalid || symbolInvalid) {
-      // Reject pools where the name or symbol is empty or contains invalid content
-      if (nameInvalid) {
-        rejectedNames.push(`Pool: ${pool.id} rejected due to invalid name - Name: ${pool.name}`);
+    if (tokenNameInvalid || tokenSymbolInvalid) {
+      // Reject pools where token names or symbols are empty or contain invalid content
+      if (tokenNameInvalid) {
+        rejectedNames.push(`Contract: ${pool.id} rejected due to invalid pool name - Name: ${pool.name}`);
       }
-      if (symbolInvalid) {
-        rejectedNames.push(`Pool: ${pool.id} rejected due to invalid symbol - Symbol: ${pool.symbol}`);
+      if (tokenSymbolInvalid) {
+        rejectedNames.push(`Contract: ${pool.id} rejected due to invalid pool symbol - Symbol: ${pool.symbol}`);
       }
     } else {
       validPools.push(pool);
@@ -168,19 +170,20 @@ function transformPoolsToTags(chainId: string, pools: Pool[]): ContractTag[] {
   });
 
   if (rejectedNames.length > 0) {
-    console.log("Rejected pools:", rejectedNames);
+    console.log("Rejected contracts:", rejectedNames);
   }
 
   return validPools.map((pool) => {
     const maxSymbolsLength = 45;
-    const truncatedSymbolsText = truncateString(pool.symbol, maxSymbolsLength);
+    const symbolsText = pool.symbol;
+    const truncatedSymbolsText = truncateString(symbolsText, maxSymbolsLength);
 
     return {
       "Contract Address": `eip155:${chainId}:${pool.id}`,
       "Public Name Tag": `${truncatedSymbolsText} Pool`,
       "Project Name": "Stargate v1",
       "UI/Website Link": "https://stargate.finance",
-      "Public Note": `Stargate v1's ${pool.name} pool contract.`,
+      "Public Note": `Stargate v1's ${pool.name} (${pool.symbol}) pool contract.`,
     };
   });
 }
@@ -192,6 +195,7 @@ class TagService implements ITagService {
     chainId: string,
     apiKey: string
   ): Promise<ContractTag[]> => {
+    let lastTimestamp: number = 0;
     let allTags: ContractTag[] = [];
     let isMore = true;
 
@@ -199,11 +203,16 @@ class TagService implements ITagService {
 
     while (isMore) {
       try {
-        const pools = await fetchData(url);
+        const pools = await fetchData(url, lastTimestamp);
         allTags.push(...transformPoolsToTags(chainId, pools));
 
-        // Determine if there's more data to fetch
-        isMore = pools.length === 100; // Adjust the condition based on your data pagination
+        isMore = pools.length === 1000;
+        if (isMore) {
+          lastTimestamp = parseInt(
+            pools[pools.length - 1].createdTimestamp.toString(),
+            10
+          );
+        }
       } catch (error) {
         if (isError(error)) {
           console.error(`An error occurred: ${error.message}`);
@@ -223,4 +232,3 @@ const tagService = new TagService();
 
 // Exporting the returnTags method directly
 export const returnTags = tagService.returnTags;
-
