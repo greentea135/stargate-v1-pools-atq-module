@@ -2,42 +2,42 @@ import fetch from "node-fetch";
 import { ContractTag, ITagService } from "atq-types";
 
 const SUBGRAPH_URLS: Record<string, { decentralized: string }> = {
-  // Ethereum Mainnet deployment, by subgraphs.messari.eth (0x7e8f317a45d67e27e095436d2e0d47171e7c769f)
+  // Ethereum Mainnet subgraph, by subgraphs.messari.eth (0x7e8f317a45d67e27e095436d2e0d47171e7c769f)
   "1": {
     decentralized:
       "https://gateway.thegraph.com/api/[api-key]/subgraphs/id/G1pPbbMjwCnFiyMherq8wqfMusZDriLMqvGBHLr2wS34",
   },
-  // Optimism deployment, by subgraphs.messari.eth (0x7e8f317a45d67e27e095436d2e0d47171e7c769f)
+  // Optimism subgraph, by subgraphs.messari.eth (0x7e8f317a45d67e27e095436d2e0d47171e7c769f)
   "10": {
     decentralized:
       "https://gateway.thegraph.com/api/[api-key]/subgraphs/id/7NAF7ZtNtJiXkfCFkTSAyFbfLLfUFa55UgK5woxPxZ46",
   },
-  // BSC deployment, by subgraphs.messari.eth (0x7e8f317a45d67e27e095436d2e0d47171e7c769f)
+  // BSC subgraph, by subgraphs.messari.eth (0x7e8f317a45d67e27e095436d2e0d47171e7c769f)
   "56": {
     decentralized:
       "https://gateway.thegraph.com/api/[api-key]/subgraphs/id/6sRx6JNkjz66id39jCK3GMiVnPVuyuv2ntwQVpDzmjRF",
   },
-  // Polygon deployment, by subgraphs.messari.eth (0x7e8f317a45d67e27e095436d2e0d47171e7c769f)
+  // Polygon subgraph, by subgraphs.messari.eth (0x7e8f317a45d67e27e095436d2e0d47171e7c769f)
   "137": {
     decentralized:
       "https://gateway.thegraph.com/api/[api-key]/subgraphs/id/SitmxEcPXXwo5cFK8Y2FSMZNZNQ4gXcGdWBDqo3A7K6",
   },
-  // Fantom deployment, by subgraphs.messari.eth (0x7e8f317a45d67e27e095436d2e0d47171e7c769f)
+  // Fantom subgraph, by subgraphs.messari.eth (0x7e8f317a45d67e27e095436d2e0d47171e7c769f)
   "250": {
     decentralized:
       "https://gateway.thegraph.com/api/[api-key]/subgraphs/id/2pG7kUAfPhtGyy1StFLhFu8pwTR5kDsCJN9KZjWn9Lnk",
   },
-  // Base deployment, by subgraphs.messari.eth (0x7e8f317a45d67e27e095436d2e0d47171e7c769f)
+  // Base subgraph, by subgraphs.messari.eth (0x7e8f317a45d67e27e095436d2e0d47171e7c769f)
   "8453": {
     decentralized:
       "https://gateway.thegraph.com/api/[api-key]/subgraphs/id/4amk8rvTHgxSobsFKsr5jheHsDzLcwyqc8vHhNC1xhGt",
   },
-  // Arbitrum One deployment, by subgraphs.messari.eth (0x7e8f317a45d67e27e095436d2e0d47171e7c769f)
+  // Arbitrum One subgraph, by subgraphs.messari.eth (0x7e8f317a45d67e27e095436d2e0d47171e7c769f)
   "42161": {
     decentralized:
       "https://gateway.thegraph.com/api/[api-key]/subgraphs/id/DWo7jrtpTtUM1buqiCUg7j7XUF568qNPBv7FwwDceuxm",
   },
-  // Avalanche C-Chain deployment, by subgraphs.messari.eth (0x7e8f317a45d67e27e095436d2e0d47171e7c769f)
+  // Avalanche C-Chain subgraph, by subgraphs.messari.eth (0x7e8f317a45d67e27e095436d2e0d47171e7c769f)
   "43114": {
     decentralized:
       "https://gateway.thegraph.com/api/[api-key]/subgraphs/id/6XypMkQUovcohhVC2XeWgdXeDsBcnL9ynKdLXpXggoHd",
